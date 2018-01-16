@@ -4,8 +4,8 @@
             "name": "Mac",
             "includePath": [
                 "/Users/janosh/Library/Arduino15/packages/adafruit/hardware/samd/1.0.21/cores/arduino",
-                "/Users/janosh/Documents/Arduino/libraries/",
-                "/Users/janosh/Documents/Arduino/libraries/FastLED"
+                "/Users/janosh/Documents/Arduino/libraries/"
+
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": false,
