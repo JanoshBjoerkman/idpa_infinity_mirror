@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/janosh/Library/Arduino15/packages/adafruit/hardware/samd/1.0.21/cores/arduino",
+                "/Users/janosh/Documents/Arduino/libraries/"
+
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": false,
+                "path": [
+                    "/Users/janosh/Library/Arduino15/packages/adafruit/hardware/samd/1.0.21/cores/arduino",
+                    "/Users/janosh/Documents/Arduino/libraries/"
+                ]
+            },
+            "intelliSenseMode": "clang-x64",
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ]
+        }
+    ],
+    "version": 3
+}
