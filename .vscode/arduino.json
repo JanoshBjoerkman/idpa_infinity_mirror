@@ -1,6 +1,4 @@
 {
     "sketch": "dma_test/dma_averaging_test.ino",
-    "board": "adafruit:samd:adafruit_feather_m0",
-    "port": "COM8",
-    "output": "../build"
+    "board": "adafruit:samd:adafruit_feather_m0"
 }
