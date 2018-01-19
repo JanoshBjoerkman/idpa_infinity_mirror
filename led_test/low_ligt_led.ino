@@ -38,7 +38,6 @@ dmacdescriptor descriptor __attribute__ ((aligned (16)));
 
 static uint32_t chnl = 0;  // DMA channel
 volatile uint32_t dmadone;
-volatile int interrupt_counter = 0;
 
 void DMAC_Handler() {
   // interrupts DMAC_CHINTENCLR_TERR DMAC_CHINTENCLR_TCMPL DMAC_CHINTENCLR_SUSP
@@ -136,64 +135,14 @@ void setup() {
 
 std::array<double, HWORDS> samplesArray = {0};
 std::array<double, HWORDS> complexArray = {0};
-uint8_t h = 0;
+
 void loop() {
-  /*
-    // anzeigen
-    for(int i = 0; i < 256; i++)
-    {
-    CHSV color(i, 255, 255) ; // rot
-    fill_solid(leds.data(),leds.size(), color);
-    FastLED.show();
-    delay(30);
-    }*/
-  /*
-    unsigned long startMillis= millis();  // Start of sample window
-    unsigned int peakToPeak = 0;   // peak-to-peak level
-
-    unsigned int signalMax = 0;
-    unsigned int signalMin = 1024;
-
-
-    // collect data for 50 mS
-    while (millis() - startMillis < sampleWindow)
-    {
-      sample = analogRead(0);
-      if (sample < 1024)  // toss out spurious readings
-      {
-         if (sample > signalMax)
-         {
-            signalMax = sample;  // save just the max levels
-         }
-         else if (sample < signalMin)
-         {
-            signalMin = sample;  // save just the min levels
-         }
-      }
-    }
-    peakToPeak = signalMax - signalMin;  // max - min = peak-peak amplitude
-    double volts = (peakToPeak * 5.0) / 1024;  // convert to volts
-    CHSV color(volts*100, 255, 255) ; // rot
-    fill_solid(leds.data(),leds.size(), color);
-    FastLED.show();
-    Serial.println(volts);
-  */
-  uint32_t t;
-
-  t = micros();
+  
   adc_dma(adcbuf, HWORDS);
-  Serial.print("w ");
-  Serial.println(interrupt_counter);
   uint32_t t_dma = micros();
   while (!dmadone) // await DMA done isr
   {
-    // Serial.println(interrupt_counter);
-    /*if((micros() - t_dma) > 200000)
-    {
-      // sometimes the dma cracks up, just fire dma up again
-      adc_dma(adcbuf, HWORDS);
-      t_dma = micros();
-    }*/
+
   }
   Serial.print("d ");
   Serial.println(interrupt_counter);
@@ -225,11 +174,7 @@ void loop() {
         }
         if(val < 1)
         {
-          val = 10 * val;
-          if(val < 5)
-          {
-            val = 0;
-          }
+          val += 1;
         }
         Serial.print(val);
         Serial.print(" ");
@@ -237,26 +182,4 @@ void loop() {
         leds[i] = color;
     }
     FastLED.show();
-    t = micros() - t;
-    Serial.print(t);
-    Serial.print(" ");
-    Serial.println(h);
-    
-    h += 1;
- /* 
-  for (int i = 0; i < HWORDS/2; i++)
-  {
-    Serial.print(samplesArray[i]);
-    Serial.print(" ");
-  }
-  Serial.println(); */
-  
-  //Serial.print(t);  Serial.print(" us   ");
-  /* for (int i = 0; i < HWORDS; i++)
-  {
-    Serial.print("0 4096 ");
-    Serial.println(adcbuf[i]);
-  } */
-  //Serial.println(adcbuf[0]);
-  //delay(200);
 }

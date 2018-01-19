@@ -13,16 +13,12 @@ constexpr static unsigned char PIN_LED_DATA = 6;
 constexpr static EOrder COLOR_ORDER = BGR;
 constexpr static int NUM_LEDS = 60;
 
-// mic
-const int sampleWindow = 50; // Sample window width in mS (50 mS = 20Hz)
-unsigned int sample;
-
 // led array
 std::array<CRGB, NUM_LEDS> leds;
 
 // DMA
 #define ADCPIN A0
-#define HWORDS 128
+#define HWORDS 128        // number of samples
 uint16_t adcbuf[HWORDS];
 
 typedef struct {
@@ -38,7 +34,6 @@ dmacdescriptor descriptor __attribute__ ((aligned (16)));
 
 static uint32_t chnl = 0;  // DMA channel
 volatile uint32_t dmadone;
-volatile int interrupt_counter = 0;
 
 void DMAC_Handler() {
   // interrupts DMAC_CHINTENCLR_TERR DMAC_CHINTENCLR_TCMPL DMAC_CHINTENCLR_SUSP
@@ -52,7 +47,6 @@ void DMAC_Handler() {
   DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_TERR;
   DMAC->CHINTFLAG.reg = DMAC_CHINTENCLR_SUSP;
   __enable_irq();
-  interrupt_counter++;
 }
 
 
@@ -107,7 +101,7 @@ void adc_init() {
   ADCsync();    //  ref 31.6.16
   ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[ADCPIN].ulADCChannelNumber;
   ADCsync();
-  ADC->AVGCTRL.reg = 0;       // Averaging mit 8 Samples zu 1
+  ADC->AVGCTRL.reg = 0;       // no averaging
   ADC->SAMPCTRL.reg = 0x00;  ; //sample length in 1/2 CLK_ADC cycles
   ADCsync();
   ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV512 | ADC_CTRLB_FREERUN | ADC_CTRLB_RESSEL_10BIT; // 48Mhz / 64 = 750kHz, 1samples = 6clocks => 750kHz / 6 = 125Khz. Mit Averaging -> 125kHz / 8 = 15.625kHz
@@ -138,68 +132,19 @@ std::array<double, HWORDS> samplesArray = {0};
 std::array<double, HWORDS> complexArray = {0};
 uint8_t h = 0;
 void loop() {
-  /*
-    // anzeigen
-    for(int i = 0; i < 256; i++)
-    {
-    CHSV color(i, 255, 255) ; // rot
-    fill_solid(leds.data(),leds.size(), color);
-    FastLED.show();
-    delay(30);
-    }*/
-  /*
-    unsigned long startMillis= millis();  // Start of sample window
-    unsigned int peakToPeak = 0;   // peak-to-peak level
-
-    unsigned int signalMax = 0;
-    unsigned int signalMin = 1024;
-
-
-    // collect data for 50 mS
-    while (millis() - startMillis < sampleWindow)
-    {
-      sample = analogRead(0);
-      if (sample < 1024)  // toss out spurious readings
-      {
-         if (sample > signalMax)
-         {
-            signalMax = sample;  // save just the max levels
-         }
-         else if (sample < signalMin)
-         {
-            signalMin = sample;  // save just the min levels
-         }
-      }
-    }
-    peakToPeak = signalMax - signalMin;  // max - min = peak-peak amplitude
-    double volts = (peakToPeak * 5.0) / 1024;  // convert to volts
-    CHSV color(volts*100, 255, 255) ; // rot
-    fill_solid(leds.data(),leds.size(), color);
-    FastLED.show();
-    Serial.println(volts);
-  */
-  uint32_t t;
-
-  t = micros();
-  adc_dma(adcbuf, HWORDS);
-  Serial.print("w ");
-  Serial.println(interrupt_counter);
   uint32_t t_dma = micros();
+  adc_dma(adcbuf, HWORDS);
   while (!dmadone) // await DMA done isr
   {
-    // Serial.println(interrupt_counter);
-    /*if((micros() - t_dma) > 200000)
+    if(micros() - t_dma > 5000) // dma failed -> reset it
     {
-      // sometimes the dma cracks up, just fire dma up again
       adc_dma(adcbuf, HWORDS);
-      t_dma = micros();
-    }*/
+    }
   }
-  Serial.print("d ");
-  Serial.println(interrupt_counter);
+
   for (int i = 0; i < HWORDS; i++)
   {
-    samplesArray[i] = (3.3 / 1024.0 * adcbuf[i]) - (3.3/2); // scale to 12bit resolution (2^12 = 4096)
+    samplesArray[i] = (3.3 / 1024.0 * adcbuf[i]) - (3.3/2); // scale to 10bit resolution (2^10 = 1024)
     complexArray[i] = 0;
   }
   
@@ -213,50 +158,27 @@ void loop() {
   fft.Compute(samplesArray.data(), complexArray.data(), samplesArray.size(), FFT_FORWARD);
   fft.ComplexToMagnitude(samplesArray.data(), complexArray.data(), samplesArray.size());
   // in samples stehen jetzt die fft werte (index 0 bis samples->size()/2)
-  //double peak = fft.MajorPeak(samplesArray.data(), samplesArray.size(), 15625);
-  //Serial.print(peak); Serial.println(" Hz");
+  double peak = fft.MajorPeak(samplesArray.data(), samplesArray.size(), 15625);
+  Serial.print(peak); Serial.println(" Hz");
 
-    for(int i = 0; i < 60; i++)
+    /*for(int i = 0; i < 30; i++)
     { 
-        int binIndex = i+1;
         double val = samplesArray[i] / 10 * 255;
         if(val > 255) {
           val = 255;
         }
-        if(val < 1)
-        {
-          val = 10 * val;
-          if(val < 5)
-          {
-            val = 0;
-          }
-        }
-        Serial.print(val);
-        Serial.print(" ");
         CHSV color(h, 255, static_cast<uint8_t>(val)) ; 
         leds[i] = color;
+        if(i != 30)
+        {
+          leds[60-i] = color;
+        }
+        else
+        {
+          leds[60-i+1] = color;
+        }
     }
     FastLED.show();
-    t = micros() - t;
-    Serial.print(t);
-    Serial.print(" ");
-    Serial.println(h);
-    
     h += 1;
- /* 
-  for (int i = 0; i < HWORDS/2; i++)
-  {
-    Serial.print(samplesArray[i]);
-    Serial.print(" ");
-  }
-  Serial.println(); */
-  
-  //Serial.print(t);  Serial.print(" us   ");
-  /* for (int i = 0; i < HWORDS; i++)
-  {
-    Serial.print("0 4096 ");
-    Serial.println(adcbuf[i]);
-  } */
-  //Serial.println(adcbuf[0]);
-  //delay(200);
+    */
 }
