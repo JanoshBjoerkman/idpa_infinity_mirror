@@ -161,24 +161,17 @@ void loop() {
   double peak = fft.MajorPeak(samplesArray.data(), samplesArray.size(), 15625);
   Serial.print(peak); Serial.println(" Hz");
 
-    /*for(int i = 0; i < 30; i++)
-    { 
-        double val = samplesArray[i] / 10 * 255;
-        if(val > 255) {
-          val = 255;
-        }
-        CHSV color(h, 255, static_cast<uint8_t>(val)) ; 
-        leds[i] = color;
-        if(i != 30)
-        {
-          leds[60-i] = color;
-        }
-        else
-        {
-          leds[60-i+1] = color;
-        }
-    }
-    FastLED.show();
-    h += 1;
-    */
+  for(int i = 0; i < 30; i++)
+  { 
+      double val = samplesArray[i] / 10 * 255;
+      if(val > 255) {
+        val = 255;
+      }
+      CHSV color(h, 255, static_cast<uint8_t>(val)) ; 
+      leds[i] = color;
+      leds[59-i] = color;
+  }
+  FastLED.show();
+  h += 1;
+    
 }
