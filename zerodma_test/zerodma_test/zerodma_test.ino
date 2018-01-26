@@ -66,10 +66,10 @@ void adc_setup()
 }
 
 void dma_setup(){
-  Serial.println("Configuring ADC");
+  //Serial.println("Configuring ADC");
   adc_setup();
   
-  Serial.println("Configuring DMA trigger");
+  //Serial.println("Configuring DMA trigger");
   myDMA.setTrigger(ADC_DMAC_ID_RESRDY);
   myDMA.setAction(DMA_TRIGGER_ACTON_BEAT);
   myDMA_status = myDMA.allocate();
@@ -81,7 +81,7 @@ void dma_setup(){
     DMA_BEAT_SIZE_HWORD,        // bytes/hword/words
     false,                      // increment source addr?
     true);                      // increment dest addr?
-  Serial.println("Adding callback");
+  //Serial.println("Adding callback");
   // register_callback() can optionally take a second argument
   // (callback type), default is DMA_CALLBACK_TRANSFER_DONE
   myDMA.setCallback(dma_callback);
@@ -89,7 +89,7 @@ void dma_setup(){
 
 void setup() {
   Serial.begin(9600);
-  while(!Serial); // Wait for Serial monitor before continuing
+  //while(!Serial); // Wait for Serial monitor before continuing
   
   dma_setup();
   
@@ -142,20 +142,28 @@ void audio_spectrum()
 }
 
 void loop() {
+  uint8_t time_dma = micros();
   myDMA_status = myDMA.startJob();
   while(!transfer_is_done); // Chill until DMA transfer completes
-  myDMA.printStatus(myDMA_status); // Results of start_transfer_job()
-  if(myDMA_status == DMA_STATUS_BUSY)
+  time_dma = micros() - time_dma;
+  //Serial.print(time_dma);
+  //Serial.println(" us -> dma");
+  //myDMA.printStatus(myDMA_status); // Results of start_transfer_job()
+  if(myDMA_status == DMA_STATUS_OK)
+  {
+    uint8_t time_fft = micros();
+    audio_spectrum();
+    time_fft = micros() - time_fft;
+    //Serial.print(time_fft);
+    //Serial.println(" us -> fft");
+    h += 1; 
+  }
+  else
   {
     myDMA.abort();
     for(int i = 0; i < SAMPLES; i++)
     {
       adc_buffer[i] = 0;
     }
-  }
-  else
-  {
-    audio_spectrum();
-    h += 1; 
   }
 }
