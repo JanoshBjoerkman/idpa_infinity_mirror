@@ -4,6 +4,9 @@
 #undef min
 #undef max
 #include <array>
+#include <iterator>
+#include <algorithm>
+#include <math.h>  
 
 // LED
 constexpr static unsigned char PIN_LED_CLOCK = 9;
@@ -107,6 +110,7 @@ void setup() {
 }
 
 uint8_t h = 0;
+double global_max_input_value = 0;
 void audio_spectrum()
 {
   /*for(int i =  0; i < SAMPLES; i++){
@@ -126,37 +130,65 @@ void audio_spectrum()
   fft.Compute(samplesArray.data(), complexArray.data(), samplesArray.size(), FFT_FORWARD);
   fft.ComplexToMagnitude(samplesArray.data(), complexArray.data(), samplesArray.size());
   // in samples stehen jetzt die fft werte (index 0 bis samples->size()/2)
+
+  double max_input_value = *std::max_element(samplesArray.begin(), samplesArray.end());
+  if(global_max_input_value < max_input_value)
+  {
+    global_max_input_value = max_input_value;
+  }
+  //Serial.println(max_input_value);
+  //Serial.println(global_max_input_value);
   
-    // print out
+  // print out
   for(int i = 0; i < 60; i++)
-  { 
-      double val = samplesArray[i] / 10 * 255;
-      if(val > 255) {
-        val = 255;
-      }
-      CHSV color(h, 255, static_cast<uint8_t>(val)) ; 
-      leds[i] = color;
-      //leds[59-i] = color;
+  {
+    int input_min = 0;
+    int input_max = 20;
+    int output_max = 255;
+    int output_min = 0;
+
+    double x = (samplesArray[i] - input_min) / (input_max - input_min);
+    double scaled_0_to_1 = sqrt(x);
+    double value = scaled_0_to_1 * (output_max - output_min);
+    uint8_t hue = ((255/30)*(60-i)-50);
+
+    // value should not go over 255
+    if(value > 255) {
+      value = 255;
+    }
+
+    // turn off the "dark" leds
+    if( value < 40)
+    {
+      value = 0;
+    }
+    CHSV color(hue, 255, static_cast<uint8_t>(value)) ; 
+    leds[i] = color;
+    //leds[59-i] = color;
   }
   FastLED.show();
 }
 
 void loop() {
-  uint8_t time_dma = micros();
+  //uint8_t time_all = micros();
+  //uint8_t time_dma = micros();
   myDMA_status = myDMA.startJob();
   while(!transfer_is_done); // Chill until DMA transfer completes
-  time_dma = micros() - time_dma;
+  //time_dma = micros() - time_dma;
   //Serial.print(time_dma);
   //Serial.println(" us -> dma");
   //myDMA.printStatus(myDMA_status); // Results of start_transfer_job()
   if(myDMA_status == DMA_STATUS_OK)
   {
-    uint8_t time_fft = micros();
+    //uint8_t time_fft = micros();
     audio_spectrum();
-    time_fft = micros() - time_fft;
+    //time_fft = micros() - time_fft;
     //Serial.print(time_fft);
     //Serial.println(" us -> fft");
-    h += 1; 
+    h += 1;
+    //time_all = micros() - time_all; 
+    //Serial.print(time_all);
+    //Serial.println(" us -> time all");
   }
   else
   {
