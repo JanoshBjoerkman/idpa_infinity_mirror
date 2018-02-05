@@ -109,7 +109,6 @@ void setup() {
   fill_solid(leds.data(), leds.size(), color);
 }
 
-uint8_t h = 0;
 double global_max_input_value = 0;
 void audio_spectrum()
 {
@@ -129,18 +128,18 @@ void audio_spectrum()
   fft.Windowing(samplesArray.data(),samplesArray.size(), FFT_WIN_TYP_HAMMING, FFT_FORWARD);  
   fft.Compute(samplesArray.data(), complexArray.data(), samplesArray.size(), FFT_FORWARD);
   fft.ComplexToMagnitude(samplesArray.data(), complexArray.data(), samplesArray.size());
-  // in samples stehen jetzt die fft werte (index 0 bis samples->size()/2)
+  // in samples stehen jetzt die fft werte (index 0 bis samples.size()/2)
 
-  double max_input_value = *std::max_element(samplesArray.begin(), samplesArray.end());
+  /*double max_input_value = *std::max_element(samplesArray.begin(), samplesArray.end());
   if(global_max_input_value < max_input_value)
   {
     global_max_input_value = max_input_value;
   }
-  //Serial.println(max_input_value);
-  //Serial.println(global_max_input_value);
+  Serial.println(max_input_value);
+  Serial.println(global_max_input_value); */
   
   // print out
-  for(int i = 0; i < 60; i++)
+  for(int i = 0; i < NUM_LEDS; i++)
   {
     int input_min = 0;
     int input_max = 20;
@@ -150,7 +149,7 @@ void audio_spectrum()
     double x = (samplesArray[i] - input_min) / (input_max - input_min);
     double scaled_0_to_1 = sqrt(x);
     double value = scaled_0_to_1 * (output_max - output_min);
-    uint8_t hue = ((255/30)*(60-i)-50);
+    uint8_t hue = ((255/(NUM_LEDS / 2))*(NUM_LEDS-i) - 50);         // color scaled to FastLED rainbow hue chart. begins with pink/blue
 
     // value should not go over 255
     if(value > 255) {
@@ -185,7 +184,6 @@ void loop() {
     //time_fft = micros() - time_fft;
     //Serial.print(time_fft);
     //Serial.println(" us -> fft");
-    h += 1;
     //time_all = micros() - time_all; 
     //Serial.print(time_all);
     //Serial.println(" us -> time all");
