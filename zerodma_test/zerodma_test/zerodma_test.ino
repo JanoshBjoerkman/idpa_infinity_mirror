@@ -38,7 +38,7 @@ void dma_callback(Adafruit_ZeroDMA *dma) {
 //This is the interrupt service routine (ISR) that is called 
 //if an ADC measurement falls out of the range of the window 
 void ADC_Handler() {
-  Serial.println("sample out of scope");
+  // Serial.println("sample out of scope");
   ADC->INTFLAG.reg = ADC_INTFLAG_WINMON; //Need to reset interrupt
 }
 
@@ -69,9 +69,6 @@ void adc_setup()
 }
 
 void dma_setup(){
-  //Serial.println("Configuring ADC");
-  adc_setup();
-  
   //Serial.println("Configuring DMA trigger");
   myDMA.setTrigger(ADC_DMAC_ID_RESRDY);
   myDMA.setAction(DMA_TRIGGER_ACTON_BEAT);
@@ -94,6 +91,8 @@ void setup() {
   Serial.begin(9600);
   //while(!Serial); // Wait for Serial monitor before continuing
   
+  //Serial.println("Configuring ADC");
+  adc_setup();
   dma_setup();
   
   fft = arduinoFFT();
@@ -146,8 +145,8 @@ void audio_spectrum()
     int output_max = 255;
     int output_min = 0;
 
-    double x = (samplesArray[i] - input_min) / (input_max - input_min);
-    double scaled_0_to_1 = sqrt(x);
+    double x_0_to_1 = (samplesArray[i] - input_min) / (input_max - input_min);
+    double scaled_0_to_1 = sqrt(x_0_to_1);
     double value = scaled_0_to_1 * (output_max - output_min);
     uint8_t hue = ((255/(NUM_LEDS / 2))*(NUM_LEDS-i) - 50);         // color scaled to FastLED rainbow hue chart. begins with pink/blue
 
