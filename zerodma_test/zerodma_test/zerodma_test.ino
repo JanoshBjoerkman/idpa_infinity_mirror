@@ -8,11 +8,11 @@
 #include <algorithm>
 #include <math.h>  
 
-// LED
+// LEDC
 constexpr static unsigned char PIN_LED_CLOCK = 9;
 constexpr static unsigned char PIN_LED_DATA = 6;
 constexpr static EOrder COLOR_ORDER = BGR;
-constexpr static int NUM_LEDS = 60;
+constexpr static int NUM_LEDS = 108;
 // led array
 std::array<CRGB, NUM_LEDS> leds;
 
@@ -101,7 +101,7 @@ void setup() {
   FastLED.addLeds<DOTSTAR, PIN_LED_DATA, PIN_LED_CLOCK, COLOR_ORDER>(leds.data(), leds.size()).setCorrection( TypicalLEDStrip );
   FastLED.setBrightness(  255 );
   // keine ahnung obs auswirkung hat, meine PowerBank hat 2.1A darum hab ich mal 2A max eingestellt. Sollte die Helligkeit automatisch regeln wenn zuviele Leds zu hell eingestellt sind
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2400);
 
   // alle leds gleiche farbe
   CHSV color(0, 255, 255) ; // rot
@@ -109,6 +109,7 @@ void setup() {
 }
 
 double global_max_input_value = 0;
+int timer_mv = micros(); 
 void audio_spectrum()
 {
   /*for(int i =  0; i < SAMPLES; i++){
@@ -134,21 +135,31 @@ void audio_spectrum()
   {
     global_max_input_value = max_input_value;
   }
+  if(micros()-timer_mv > 3000000)
+  {
+    timer_mv = micros();
+    global_max_input_value = max_input_value;
+  }
   Serial.println(max_input_value);
-  Serial.println(global_max_input_value); */
+  Serial.println(global_max_input_value);*/ 
   
   // print out
-  for(int i = 0; i < NUM_LEDS; i++)
+  // WARNING: NUM_LEDS has to be even
+  for(int i = 0; i < NUM_LEDS / 2; i++)
   {
-    int input_min = 0;
-    int input_max = 20;
-    int output_max = 255;
-    int output_min = 0;
+    double input_min = 1.2;
+    double input_max = 20;
+    double output_max = 255;
+    double output_min = 0;
 
-    double x_0_to_1 = (samplesArray[i] - input_min) / (input_max - input_min);
-    double scaled_0_to_1 = sqrt(x_0_to_1);
-    double value = scaled_0_to_1 * (output_max - output_min);
-    uint8_t hue = ((255/(NUM_LEDS / 2))*(NUM_LEDS-i) - 50);         // color scaled to FastLED rainbow hue chart. begins with pink/blue
+    double x_0_to_1 = 0;
+    if((samplesArray[i] - input_min) > 0)
+    {
+      x_0_to_1 = (samplesArray[i] - input_min) / (input_max - input_min);
+    }
+    double scaled_0_to_1 = sqrt(1.5 * x_0_to_1);
+    uint8_t value = scaled_0_to_1 * (output_max - output_min);
+    uint8_t hue = ((255/(NUM_LEDS / 2))*((NUM_LEDS / 2)-i) - 50);         // color scaled to FastLED rainbow hue chart. begins with pink/blue
 
     // value should not go over 255
     if(value > 255) {
@@ -158,11 +169,11 @@ void audio_spectrum()
     // turn off the "dark" leds
     if( value < 40)
     {
-      value = 0;
+      //value = 0;
     }
     CHSV color(hue, 255, static_cast<uint8_t>(value)) ; 
     leds[i] = color;
-    //leds[59-i] = color;
+    leds[(NUM_LEDS-1)-i] = color;
   }
   FastLED.show();
 }
