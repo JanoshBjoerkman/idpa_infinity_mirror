@@ -147,7 +147,7 @@ void audio_spectrum()
   // WARNING: NUM_LEDS has to be even
   for(int i = 0; i < NUM_LEDS / 2; i++)
   {
-    double input_min = 1.2;
+    double input_min = 0;
     double input_max = 20;
     double output_max = 255;
     double output_min = 0;
@@ -157,7 +157,15 @@ void audio_spectrum()
     {
       x_0_to_1 = (samplesArray[i] - input_min) / (input_max - input_min);
     }
-    double scaled_0_to_1 = sqrt(1.5 * x_0_to_1);
+    double scaled_0_to_1 = 0;
+    if(x_0_to_1 - 0.2 > 0)
+    {
+     scaled_0_to_1 = 1.1 * sqrt(x_0_to_1 - 0.1); // see: https://www.wolframalpha.com/input/?i=1.1*sqrt(x-0.1)+for+x+%3D+0+to+1
+    }
+    else
+    {
+      scaled_0_to_1 = 0;
+    }
     uint8_t value = scaled_0_to_1 * (output_max - output_min);
     uint8_t hue = ((255/(NUM_LEDS / 2))*((NUM_LEDS / 2)-i) - 50);         // color scaled to FastLED rainbow hue chart. begins with pink/blue
 
@@ -165,13 +173,13 @@ void audio_spectrum()
     if(value > 255) {
       value = 255;
     }
-
+    
     // turn off the "dark" leds
     if( value < 40)
     {
       //value = 0;
     }
-    CHSV color(hue, 255, static_cast<uint8_t>(value)) ; 
+    CHSV color(hue, 255, value);//static_cast<uint8_t>(value)) ; 
     leds[i] = color;
     leds[(NUM_LEDS-1)-i] = color;
   }
