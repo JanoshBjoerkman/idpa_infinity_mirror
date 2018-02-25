@@ -215,9 +215,9 @@ void audio_spectrum()
     // scale back to values from 0 to 255
     double value = scaled_0_to_1 * (output_max - output_min);
     
-    // value should not go over 255
-    if(value > 255) {
-      value = 255;
+    // value should not go over max output
+    if(value > output_max) {
+      value = output_max;
     }
     // turn off the "dark" LEDs
     if( value < 15)
