@@ -8,7 +8,7 @@
 constexpr static unsigned char PIN_LED_CLOCK = 9;
 constexpr static unsigned char PIN_LED_DATA = 6;
 constexpr static EOrder COLOR_ORDER = BGR;
-constexpr static int NUM_LEDS = 60;
+constexpr static int NUM_LEDS = 105;
 // led array
 std::array<CRGB, NUM_LEDS> leds;
 
@@ -30,12 +30,12 @@ int counter = 0;
 bool color_flag = true;
 void loop() {
   
-    for(int i = 0; i < 30; i++)
+    for(int i = 0; i < (NUM_LEDS/2); i++)
     {
-        double col = 255/30 * i;
+        double col = 255/(NUM_LEDS/2) * i;
         CHSV color(static_cast<uint8_t>(col), 255, counter);
         leds[i] = color;
-        leds[59-i] = color;  
+        leds[(NUM_LEDS-1)-i] = color;  
     }
     FastLED.show();
     if(color_flag)

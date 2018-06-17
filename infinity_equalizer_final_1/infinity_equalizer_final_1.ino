@@ -111,12 +111,12 @@ void setup() {
   fill_solid(leds.data(), leds.size(), color);  // set all LEDs to same color
 }
 
-double global_max_input_value = 0;  // measuring: the highest input of all samples ever collected
-int timer_mv = micros();            // time measuring 
+// double global_max_input_value = 0;  // measuring: the highest input of all samples ever collected
+// int timer_mv = micros();            // time measuring 
 void audio_spectrum()
 {  
-  std::array<double, SAMPLES > samplesArray = {0};
-  std::array<double, SAMPLES > complexArray = {0};
+  std::array<double, SAMPLES> samplesArray = {0};
+  std::array<double, SAMPLES> complexArray = {0};
   for (int i = 0; i < SAMPLES; i++)
   {
     samplesArray[i] = (VCC_microphone / 1024.0 * adc_buffer[i]) - (VCC_microphone/2); // scale to 10bit resolution (2^10 = 1024) and set zero point to "0" (instead of 1.65V)
@@ -128,29 +128,16 @@ void audio_spectrum()
   fft.ComplexToMagnitude(samplesArray.data(), complexArray.data(), samplesArray.size());
   // samplesArray know contains the calculated fft values
 
-  /*double max_input_value = *std::max_element(samplesArray.begin(), samplesArray.end());
-  if(global_max_input_value < max_input_value)
-  {
-    global_max_input_value = max_input_value;
-  }
-  if(micros()-timer_mv > 1000000)
-  {
-    timer_mv = micros();
-    global_max_input_value = max_input_value;
-  }
-  Serial.println(max_input_value);
-  Serial.println(global_max_input_value);*/
-
   // used for color and brightness scaling, you can play with them
   double input_min = 0;
-  double input_max = 4;
+  double input_max = 4; // 13
   double output_max = 255;
   double output_min = 0;
-
+  
   // print out
   // WARNING: NUM_LEDS has to be even
   for(int i = 0; i < NUM_LEDS / 2; i++)
-  {
+  { 
     // get the color first, will be used later 
     uint8_t hue = ((255/(NUM_LEDS / 2))*((NUM_LEDS / 2)-i) - 50); // color scaled to FastLED rainbow hue chart. begins with pink/blue
     // see color chart for reference: https://github.com/FastLED/FastLED/wiki/FastLED-HSV-Colors
@@ -162,52 +149,8 @@ void audio_spectrum()
       // scale the samples to values from 0 to 1
       x_0_to_1 = (samplesArray[i] - input_min) / (input_max - input_min);
     }
-    else if((samplesArray[i] - input_min) < 0)
-    {
-      x_0_to_1 = 0;
-    }
-    /*
-    // red - orange
-    if(hue < 32) 
-    {
-      //double sqrt_05 = sqrt(x_0_to_1)+ 0.05;
-      //scaled_0_to_1 = (sqrt_05 > 0) ? sqrt_05 : 0;
-      scaled_0_to_1 = - pow((x_0_to_1 -1), 4) + 1; 
-    }
-    // orange - yellow
-    if(hue >= 32 && hue <= 64)
-    {
-      //double sqrt_08 = sqrt(x_0_to_1)+ 0.08;
-      //scaled_0_to_1 = (sqrt_08 > 0) ? sqrt_08 : 0; 
-      scaled_0_to_1 = pow((x_0_to_1 -1), 5) + 1;
-    }
-    // yellow - aqua
-    if(hue > 64 && hue <= 128)
-    {
-      //double sqrt_07 = sqrt(x_0_to_1)+ 0.07;
-      //scaled_0_to_1 = (sqrt_07 > 0) ? sqrt_07 : 0; 
-      scaled_0_to_1 = pow((x_0_to_1 -1), 5) + 1;
-    }
-    // aqua - purple
-    if(hue > 128 && hue < 180)
-    {
-      //double sqrt_n03 = sqrt(x_0_to_1) - 0.14;
-      //scaled_0_to_1 = (sqrt_n03 > 0) ? sqrt_n03 : 0;
-      scaled_0_to_1 = - pow((x_0_to_1 -1), 2) + 1; 
-    }*/
-    /*if(x_0_to_1 - 0.1 > 0)
-    {
-     scaled_0_to_1 = 1.1 * sqrt(x_0_to_1 - 0.1); // see: https://www.wolframalpha.com/input/?i=1.1*sqrt(x-0.1)+for+x+%3D+0+to+1
-    }
-    else
-    {
-      scaled_0_to_1 = 0;
-    }*/
-    //scaled_0_to_1 = sqrt(x_0_to_1);
-    //scaled_0_to_1 = pow((x_0_to_1 -1), 3) + 1;
-    //scaled_0_to_1 = - pow((x_0_to_1 -1), 2) + 1;
-    //scaled_0_to_1 = x_0_to_1;
-    
+
+    // scale hue 
     if(hue > 128 && hue < 177)
     {
       // blue colors require less brightness
@@ -220,7 +163,7 @@ void audio_spectrum()
     
     // scale back to values from 0 to 255
     double value = scaled_0_to_1 * (output_max - output_min);
-    
+
     // value should not go over max output
     if(value > output_max) {
       value = output_max;
@@ -230,6 +173,7 @@ void audio_spectrum()
     {
       value = 0;
     }
+    
     // create color
     CHSV color(hue, 255, static_cast<uint8_t>(value));
     leds[i] = color;                // set color to corresponding LED
@@ -240,24 +184,11 @@ void audio_spectrum()
 }
 
 void loop() {
-  // uint8_t time_all = micros();
-  // uint8_t time_dma = micros();
   myDMA_status = myDMA.startJob();  // start dma job
   while(!transfer_is_done);         // chill until DMA transfer completes
-  // time_dma = micros() - time_dma;
-  // Serial.print(time_dma);
-  // Serial.println(" us -> dma");
-  // myDMA.printStatus(myDMA_status); // Results of start_transfer_job()
   if(myDMA_status == DMA_STATUS_OK)
   {
-    // uint8_t time_fft = micros();
     audio_spectrum();   // fft, calculate colors/brightness, show LEDs
-    // time_fft = micros() - time_fft;
-    // Serial.print(time_fft);
-    // Serial.println(" us -> fft");
-    // time_all = micros() - time_all; 
-    // Serial.print(time_all);
-    // Serial.println(" us -> time all");
   }
   else
   {
