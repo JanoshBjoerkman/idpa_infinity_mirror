@@ -114,9 +114,10 @@ void setup() {
 // double global_max_input_value = 0;  // measuring: the highest input of all samples ever collected
 // int timer_mv = micros();            // time measuring 
 void audio_spectrum()
-{  
+{ 
   std::array<double, SAMPLES> samplesArray = {0};
   std::array<double, SAMPLES> complexArray = {0};
+
   for (int i = 0; i < SAMPLES; i++)
   {
     samplesArray[i] = (VCC_microphone / 1024.0 * adc_buffer[i]) - (VCC_microphone/2); // scale to 10bit resolution (2^10 = 1024) and set zero point to "0" (instead of 1.65V)
@@ -130,7 +131,7 @@ void audio_spectrum()
 
   // used for color and brightness scaling, you can play with them
   double input_min = 0;
-  double input_max = 4; // 13
+  double input_max = 3; // 13
   double output_max = 255;
   double output_min = 0;
   
@@ -176,19 +177,57 @@ void audio_spectrum()
     
     // create color
     CHSV color(hue, 255, static_cast<uint8_t>(value));
-    leds[i] = color;                // set color to corresponding LED
-    leds[(NUM_LEDS-1)-i] = color;   // this "mirrors" the LED to the other side
+    setLedColors(i, color);
   }
-  // display LEDs
-  FastLED.show();
 }
 
+void rainbow_colors(int &value_counter)
+{
+  for(int i = 0; i < (NUM_LEDS/2); i++)
+  {
+      double col = 255/(NUM_LEDS/2) * i;
+      CHSV color(static_cast<uint8_t>(col), 255, value_counter);
+      setLedColors(i, color);
+  }
+}
+
+void setLedColors(int &index, CHSV &color)
+{
+  leds[index] = color;                // set color to corresponding LED
+  leds[(NUM_LEDS-1)-index] = color;   // this "mirrors" the LED to the other side
+}
+
+int rainbow_timer = micros();
+int loop_iteration_counter = 0;
+int rainbow_value_counter = 0;
+bool color_flag = true;
+bool isQuiet = false;
+bool time_up = false;
 void loop() {
   myDMA_status = myDMA.startJob();  // start dma job
   while(!transfer_is_done);         // chill until DMA transfer completes
   if(myDMA_status == DMA_STATUS_OK)
   {
-    audio_spectrum();   // fft, calculate colors/brightness, show LEDs
+    isQuiet = *std::max_element(std::begin(adc_buffer), std::end(adc_buffer)) < 520; // silent -> 515, with ambient music almost every sample over 520
+    time_up = (micros() - rainbow_timer) > 10000000; // timer over 10 seconds
+
+    // reset timer whenever music is playing
+    if(!isQuiet)
+    {
+      rainbow_timer = micros();
+    }
+
+    if(isQuiet && time_up)
+    {
+      // calculate color with rainbow style
+      rainbow_colors(rainbow_value_counter);
+    }
+    else
+    {
+      // calculate colors/brightness based on FFT
+      audio_spectrum();
+    }
+    FastLED.show();
   }
   else
   {
@@ -199,4 +238,33 @@ void loop() {
       adc_buffer[i] = 0;  // clear ADC values
     }
   }
+  
+  if(loop_iteration_counter % 30 == 0)
+  {
+    if(color_flag)
+    {
+      if(rainbow_value_counter < 255)
+      {
+        rainbow_value_counter++;
+      }
+      else
+      {
+        color_flag = false;
+        rainbow_value_counter--;
+      } 
+    }
+    else
+    {
+      if(rainbow_value_counter > 0)
+      {
+        rainbow_value_counter--;
+      }
+      else
+      {
+        color_flag = true;
+        rainbow_value_counter++;
+      } 
+    }
+  }
+  loop_iteration_counter++;
 }
