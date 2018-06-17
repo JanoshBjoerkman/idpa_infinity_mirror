@@ -6,7 +6,7 @@
 #include <array>
 #include <iterator>
 #include <algorithm>
-#include <math.h>  
+#include <math.h>
 
 // for reference (microphone) see: https://learn.adafruit.com/adafruit-microphone-amplifier-breakout
 constexpr static double VCC_microphone = 3.3;
@@ -181,7 +181,7 @@ void audio_spectrum()
   }
 }
 
-void rainbow_colors(int &value_counter)
+void rainbow_colors(int value_counter)
 {
   for(int i = 0; i < (NUM_LEDS/2); i++)
   {
@@ -200,6 +200,8 @@ void setLedColors(int &index, CHSV &color)
 int rainbow_timer = micros();
 int loop_iteration_counter = 0;
 int rainbow_value_counter = 0;
+constexpr static int RAINBOW_TIMER_MAX = 10000000;
+constexpr static int ADC_SILENT_THRESHOLD = 520;
 bool color_flag = true;
 bool isQuiet = false;
 bool time_up = false;
@@ -208,8 +210,8 @@ void loop() {
   while(!transfer_is_done);         // chill until DMA transfer completes
   if(myDMA_status == DMA_STATUS_OK)
   {
-    isQuiet = *std::max_element(std::begin(adc_buffer), std::end(adc_buffer)) < 520; // silent -> 515, with ambient music almost every sample over 520
-    time_up = (micros() - rainbow_timer) > 10000000; // timer over 10 seconds
+    isQuiet = *std::max_element(std::begin(adc_buffer), std::end(adc_buffer)) < ADC_SILENT_THRESHOLD; // silent -> 515, with ambient music almost every sample over 520
+    time_up = (micros() - rainbow_timer) > RAINBOW_TIMER_MAX; // timer over 10 seconds
 
     // reset timer whenever music is playing
     if(!isQuiet)
@@ -239,7 +241,7 @@ void loop() {
     }
   }
   
-  if(loop_iteration_counter % 30 == 0)
+  if(loop_iteration_counter % 10 == 0)
   {
     if(color_flag)
     {
@@ -265,6 +267,10 @@ void loop() {
         rainbow_value_counter++;
       } 
     }
+  }
+  if(loop_iteration_counter == 4294967295)
+  {
+    loop_iteration_counter = 0;
   }
   loop_iteration_counter++;
 }
