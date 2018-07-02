@@ -129,7 +129,7 @@ void audio_spectrum()
 
   // used for color and brightness scaling, you can play with them
   double input_min = 0;
-  double input_max = 3; // 13
+  double input_max = 8;
   double output_max = 255;
   double output_min = 0;
   
@@ -199,7 +199,7 @@ int rainbow_timer = micros();
 int loop_iteration_counter = 0;
 int rainbow_value_counter = 0;
 constexpr static int RAINBOW_TIMER_MAX = 10000000;
-constexpr static int ADC_SILENT_THRESHOLD = 520;
+constexpr static int ADC_SILENT_THRESHOLD = 530;
 bool color_flag = true;
 bool isQuiet = false;
 bool time_up = false;
@@ -210,7 +210,7 @@ void loop() {
   {
     isQuiet = *std::max_element(std::begin(adc_buffer), std::end(adc_buffer)) < ADC_SILENT_THRESHOLD; // silent -> 515, with ambient music almost every sample over 520
     time_up = (micros() - rainbow_timer) > RAINBOW_TIMER_MAX; // timer over 10 seconds
-
+    Serial.println(*std::max_element(std::begin(adc_buffer), std::end(adc_buffer)));
     // reset timer whenever music is playing
     if(!isQuiet)
     {
@@ -240,7 +240,7 @@ void loop() {
     }
   }
   
-  if(loop_iteration_counter % 40 == 0)
+  if(loop_iteration_counter % 35 == 0)
   {
     if(color_flag)
     {

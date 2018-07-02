@@ -1,6 +1,6 @@
 {
-    "sketch": "2_sides_test/2_side_test.ino",
+    "sketch": "infinity_equalizer_final_2/infinity_equalizer_final_2.ino",
     "board": "adafruit:samd:adafruit_feather_m0",
-    "port": "COM8",
+    "port": "/dev/cu.usbmodem1441",
     "output": "../build"
 }
